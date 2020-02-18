@@ -1,41 +1,66 @@
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import org.apache.logging.log4j.LogManager
 import kotlin.reflect.KProperty
 
-fun main(){
-    val baseInstance = Example(10)
-    baseInstance.print()
-    Derived(baseInstance).print()
-    println(lazyValue)
-    println(lazyValue)
+val logger: org.apache.logging.log4j.Logger = LogManager.getLogger("Workflow")
+
+val sampleCoroutineScope = CoroutineScope(Dispatchers.IO)
+
+val handler = CoroutineExceptionHandler { _, exception ->
+    println("A coroutine thrown an exception=${exception.message}")
 }
 
-//Lazy
-val lazyValue: String by lazy {
-    println("computed!")
-    "Hello"
-}
+val managerJob = SupervisorJob()
 
-// inline function explanation
-// https://medium.com/@agrawalsuneet/inline-function-kotlin-3f05d2ea1b59
-
-interface Base {
-    fun print()
-}
+val managerCoroutineScope = CoroutineScope(managerJob + Dispatchers.IO + handler)
 
 
-class Example(val x: Int): Base {
-    override fun print() {
-        println(x)
-    }
-}
 
-class Derived(baseInstance: Base) : Base by baseInstance
 
-class Delegate {
-    operator fun getValue(example: Example, property: KProperty<*>): String {
-        return "$example, thank you for delegating '${property.name}' to me!"
+
+
+
+fun main() {
+    val result = managerCoroutineScope.async {
+        var resultFromLaunch = 0
+        launch {
+            resultFromLaunch = doSomething()
+            println("Function has returned=$resultFromLaunch")
+        }
+
+        val result = async {
+            doSomething()
+        }
+        println("Function has returned from Async=${result.await()}")
+        result.await() + resultFromLaunch
     }
 
-    operator fun setValue(example: Example, property: KProperty<*>, s: String) {
-        println("$s has been assigned to '${property.name}' in $example.")
+    runBlocking {
+        println("Final result = ${result.await()}")
     }
+
+    managerCoroutineScope.launch {
+        throw Exception("This coroutine has failed 💀")
+    }
+
+    runBlocking {
+        delay(5000L)
+    }
+
+}
+
+suspend fun doSomething() : Int{
+    delay(1000L)
+    return 10
+}
+
+
+
+fun Job.status(): String = when {
+    isCancelled -> "cancelled"
+    isActive -> "Active"
+    isCompleted -> "Complete"
+    else -> "Nothing"
 }
