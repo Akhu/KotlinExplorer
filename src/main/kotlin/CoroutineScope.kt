@@ -4,7 +4,9 @@ import kotlinx.coroutines.flow.flow
 import org.apache.logging.log4j.LogManager
 import kotlin.reflect.KProperty
 
-val logger: org.apache.logging.log4j.Logger = LogManager.getLogger("Workflow")
+val logger: org.apache.logging.log4j.Logger = LogManager.getLogger("KotlinExplorer")
+
+fun printlnd(msg: String) = println("[${Thread.currentThread().name}] $msg")
 
 val sampleCoroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -15,11 +17,6 @@ val handler = CoroutineExceptionHandler { _, exception ->
 val managerJob = SupervisorJob()
 
 val managerCoroutineScope = CoroutineScope(managerJob + Dispatchers.IO + handler)
-
-
-
-
-
 
 
 fun main() {
